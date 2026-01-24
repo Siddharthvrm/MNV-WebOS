@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MNV's WebOS</title>
+<style>
+/* ===== Basic Reset & Desktop Styling ===== */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Courier New", monospace;
+  background: #f5f5f5;
+  color: black;
+}
+
+#desktop {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #f5f5f5;
+}
+
+#logo {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: 2px;
+  user-select: none;
+}
+
+#topRightInfo {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+  font-weight: bold;
+  user-select: none;
+}
+
+/* ===== Line under top bar ===== */
+#topLine {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #ccc;
+}
+
+/* ===== Taskbar ===== */
+#taskbar {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 40px;
+  background: #111;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  border-top: 1px solid #333;
+}
+
+/* ===== Window Styling ===== */
+.window {
+  position: absolute;
+  width: 450px;
+  height: 280px;
+  border: 1px solid #aaa;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 3px 3px 12px rgba(0,0,0,0.2);
+  resize: both;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.window-header {
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  background: #eee;
+  border-bottom: 1px solid #ccc;
+  cursor: move;
+  user-select: none;
+}
+
+.mac-btns {
+  display: flex;
+  gap: 6px;
+  margin-right: 10px;
+}
+
+.mac-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.red { background: #ff5f56; }
+.yellow { background: #ffbd2e; }
+.green { background: #27c93f; }
+
+/* ===== Editor Styling ===== */
+.window textarea {
+  width: 100%;
+  height: calc(100% - 120px);
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  padding: 5px;
+  background: #fafafa;
+}
+
+/* ===== Save/Delete Buttons Styling ===== */
+.window .saveBtn, .window .deleteBtn {
+  position: absolute;
+  bottom: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.saveBtn { left: 8px; background: #27c93f; }
+.saveBtn:hover { background: #1fa92f; }
+
+.deleteBtn { left: 70px; background: #f44336; }
+.deleteBtn:hover { background: #d32f2f; }
+
+/* ===== Files List Styling ===== */
+#fileList div {
+  padding: 4px;
+  cursor: pointer;
+}
+#fileList div:hover {
+  background: #ddd;
+}
+
+/* ===== App Icons on Desktop ===== */
+.appIcon {
+  width: 80px;
+  text-align: center;
+  cursor: pointer;
+  position: absolute;
+  font-size: 12px;
+  user-select: none;
+}
+.appIcon img {
+  width: 48px;
+  height: 48px;
+  display: block;
+  margin: 0 auto 5px;
+}
+
+/* ===== Boot Screen ===== */
+#boot {
+  padding: 20px;
+  white-space: pre-wrap;
+  font-size: 16px;
+  line-height: 1.3;
+  color: #00ffcc;
+  background: black;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Courier New", monospace;
+  position: relative;
+}
+
+#bootProgress {
+  width: 300px;
+  height: 10px;
+  background: #333;
+  border: 1px solid #555;
+  margin: 20px auto 0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+#bootProgress div {
+  height: 100%;
+  width: 0%;
+  background: #00ffcc;
+}
+
+/* ===== Popup Styling ===== */
+.popup {
+  position: absolute;
+  bottom: 60px;
+  left: 20px;
+  min-width: 120px;
+  padding: 8px 12px;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  color: #00ffcc;
+  background: black;
+  border: 1px solid #00ffcc;
+  border-radius: 5px;
+  opacity: 0.95;
+  z-index: 9999;
+}
+</style>
+</head>
+<body>
+
+<div id="boot"></div>
+
+<div id="desktop">
+  <div id="logo">MNV's</div>
+  <div id="topRightInfo">
+    <div id="location">India</div>
+    <div id="weather">Loading weather...</div>
+    <div id="dateTime">Loading date/time...</div>
+  </div>
+  <div id="topLine"></div>
+  <div id="taskbar">Siddharth's Collection</div>
+</div>
+
+<script>
+// ===== Boot Screen =====
+const bootLines = [
+  "Loading Corporate Workspace",
+  "Booting system kernel...",
+  "Matching user profile",
+  "Engaging communication layer",
+  "Installing 4:3",
+  "Installing 16:9",
+  "Installing 1.85:1",
+  "Installing 2.38:1",
+  "Installing 2.76:1",
+  "Finalizing display matrices",
+  "Launching MNV's os",
+  "",
+  "██████████████████████████████████████",
+  "█                                    █",
+  "█   ███╗   ███╗███╗   ██╗██╗   ██╗   █",
+  "█   ████╗ ████║████╗  ██║██║   ██║   █",  
+  "█   ██╔████╔██║██╔██╗ ██║██║   ██║   █",
+  "█   ██║╚██╔╝██║██║╚██╗██║╚██╗ ██╔╝   █",
+  "█   ██║ ╚═╝ ██║██║ ╚████║ ╚████╔╝    █",
+  "█   ╚═╝     ╚═╝╚═╝  ╚═══╝  ╚═══╝     █",
+  "█                                    █",
+  "█        MNV's os is online!         █",
+  "██████████████████████████████████████",
+  "",
+  "Press SPACE to enter"
+];
+
+const boot = document.getElementById("boot");
+let line=0, char=0;
+
+function typeChar() {
+  if(line>=bootLines.length) { showProgressBar(); return; }
+  const current = bootLines[line];
+  if(current==="") { boot.innerHTML+="\n"; line++; char=0; setTimeout(typeChar,20); return; }
+  if(char < current.length) { boot.innerHTML+=current[char]; char++; setTimeout(typeChar,10+Math.random()*10);}
+  else { boot.innerHTML+="\n"; char=0; line++; setTimeout(typeChar,60);}
+}
+
+function showProgressBar() {
+  const bar = document.createElement("div");
+  bar.id = "bootProgress";
+  const inner = document.createElement("div");
+  bar.appendChild(inner);
+  boot.appendChild(bar);
+
+  let progress = 0;
+  const interval = setInterval(()=>{
+    progress += Math.random()*5;
+    if(progress>=100) { progress=100; clearInterval(interval); finishBoot(); }
+    inner.style.width = progress + "%";
+  }, 120);
+}
+
+function showDesktop() { boot.style.display="none"; desktop.style.display="block"; }
+function finishBoot() { showDesktop(); initDesktopApps(); updateDateTime(); }
+document.addEventListener("keydown", e=>{ if(e.code==="Space") finishBoot(); });
+
+// ===== Date & Time =====
+function updateDateTime(){
+  const now=new Date();
+  const options={ weekday:'short', month:'short', day:'numeric' };
+  const dateStr=now.toLocaleDateString('en-IN',options);
+  const timeStr=now.toLocaleTimeString('en-GB',{ hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  document.getElementById('dateTime').textContent = `${dateStr} ${timeStr}`;
+  setTimeout(updateDateTime,1000);
+}
+
+// ===== Virtual File System =====
+const defaultFS = {
+  poems:{ "her.txt":"She walked in like a verse untold...", "midnight.txt":"The stars whispered your name." },
+  songs:{ "love.txt":"🎵 Love is a burning thing...", "rain.txt":"🎵 Rain keeps falling on my mind..." }
+};
+if(!localStorage.getItem("fs")) localStorage.setItem("fs", JSON.stringify(defaultFS));
+function getFS(){ return JSON.parse(localStorage.getItem("fs")); }
+function saveFS(fs){ localStorage.setItem("fs", JSON.stringify(fs)); }
+
+let topZ=1;
+let folderHistory=[];
+
+// ===== Popup =====
+function showPopup(msg){
+  const pop = document.createElement("div");
+  pop.className = "popup";
+  pop.textContent = msg;
+  desktop.appendChild(pop);
+  setTimeout(()=>desktop.removeChild(pop), 1800);
+}
+
+// ===== Desktop Apps =====
+function initDesktopApps(){
+  const apps=[ {name:"Files",id:"files",icon:"https://img.icons8.com/ios-filled/50/000000/folder-invoices.png"} ];
+  apps.forEach((app,index)=>{
+    const icon = document.createElement("div");
+    icon.className = "appIcon";
+    icon.style.top=`${80 + index*90}px`;
+    icon.style.right="20px";
+    icon.innerHTML = `<img src="${app.icon}" alt="${app.name}"/><br>${app.name}`;
+    desktop.appendChild(icon);
+    if(app.name==="Files") icon.addEventListener("click",()=> openFilesWindow());
+  });
+}
+
+// ===== Draggable Windows =====
+function makeDraggable(win){
+  const header = win.querySelector(".window-header");
+  let isDown = false, offsetX=0, offsetY=0;
+  header.addEventListener("mousedown", e=>{
+    isDown = true;
+    offsetX = e.clientX - win.offsetLeft;
+    offsetY = e.clientY - win.offsetTop;
+    win.style.zIndex = ++topZ;
+  });
+  document.addEventListener("mousemove", e=>{
+    if(!isDown) return;
+    win.style.left = (e.clientX - offsetX)+"px";
+    win.style.top = (e.clientY - offsetY)+"px";
+  });
+  document.addEventListener("mouseup", ()=>{isDown=false;});
+}
+
+// ===== Files Window =====
+function openFilesWindow(){
+  const win = document.createElement("div");
+  win.className = "window";
+  win.style.top="100px"; win.style.left="120px"; win.style.zIndex=++topZ;
+  win.innerHTML = `
+    <div class="window-header">
+      <div class="mac-btns">
+        <div class="mac-btn red"></div>
+        <div class="mac-btn yellow"></div>
+        <div class="mac-btn green"></div>
+      </div>
+      <strong>Files</strong>
+    </div>
+    <div style="padding:8px;">
+      <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+        <input id="currentFolder" placeholder="Folder path" style="flex:1; max-width:180px;">
+        <button id="addFileBtn">Add File</button>
+        <button id="backBtn">Back</button>
+      </div>
+      <div id="fileList"></div>
+    </div>
+  `;
+  desktop.appendChild(win);
+  makeDraggable(win);
+
+  win.querySelector(".red").onclick = ()=>win.remove();
+
+  const addBtn = win.querySelector("#addFileBtn");
+  addBtn.onclick = ()=>{
+    const folder = document.getElementById("currentFolder").value;
+    if(!folder || !getFS()[folder]) return showPopup("Specify poems or songs folder");
+    const name = prompt("Enter new file name:");
+    if(!name) return;
+    const fs=getFS(); fs[folder][name]=""; saveFS(fs); refreshFiles();
+    showPopup(`File ${name} created ✔`);
+  };
+
+  const backBtn = win.querySelector("#backBtn");
+  backBtn.onclick = ()=>{
+    if(folderHistory.length>0){
+      const prev = folderHistory.pop();
+      document.getElementById("currentFolder").value = prev;
+      refreshFiles();
+    }
+  };
+
+  document.getElementById("currentFolder").value="";
+  folderHistory=[];
+  refreshFiles();
+}
+
+// ===== Refresh Files =====
+function refreshFiles(){
+  const path = document.getElementById("currentFolder")?.value || "";
+  const fs = getFS();
+  let folder = fs;
+  if(path) path.split("/").forEach(p=>folder=folder[p]);
+  const list = document.getElementById("fileList");
+  if(!list) return;
+  list.innerHTML="";
+  Object.keys(folder).forEach(name=>{
+    const isDir = typeof folder[name]==="object";
+    const div = document.createElement("div");
+    div.textContent = isDir ? name+"/" : name;
+    div.style.cursor="pointer";
+    div.onclick = ()=>{
+      if(isDir){
+        const cur = document.getElementById("currentFolder").value;
+        folderHistory.push(cur);
+        document.getElementById("currentFolder").value = cur ? cur+"/"+name : name;
+        refreshFiles();
+      } else openFileWindow(path ? path+"/"+name : name, name);
+    };
+    list.appendChild(div);
+  });
+}
+
+// ===== Notepad Window =====
+function openFileWindow(path, name){
+  const fs=getFS(); const parts=path.split("/"); let data=fs; parts.forEach(p=>data=data[p]);
+  const win = document.createElement("div");
+  win.className = "window";
+  win.style.top="120px"; win.style.left="160px"; win.style.zIndex=++topZ;
+  win.innerHTML = `
+    <div class="window-header">
+      <div class="mac-btns">
+        <div class="mac-btn red"></div>
+        <div class="mac-btn yellow"></div>
+        <div class="mac-btn green"></div>
+      </div>
+      <strong>${name}</strong>
+    </div>
+    <textarea>${data}</textarea>
+    <button class="saveBtn">Save</button>
+    <button class="deleteBtn">Delete</button>
+  `;
+  const textarea = win.querySelector("textarea");
+  const saveBtn = win.querySelector(".saveBtn");
+  const delBtn = win.querySelector(".deleteBtn");
+
+  saveBtn.onclick = ()=>{
+    let ref=fs; for(let i=0;i<parts.length-1;i++) ref=ref[parts[i]]; ref[parts.at(-1)] = textarea.value;
+    saveFS(fs); showPopup("Saved ✔");
+  };
+
+  delBtn.onclick = ()=>{
+    let ref=fs; for(let i=0;i<parts.length-1;i++) ref=ref[parts[i]];
+    delete ref[parts.at(-1)];
+    saveFS(fs); win.remove(); refreshFiles(); showPopup("Deleted ✔");
+  };
+
+  win.querySelector(".red").onclick = ()=>win.remove();
+  makeDraggable(win);
+  desktop.appendChild(win);
+}
+
+// ===== Start Boot =====
+typeChar();
+</script>
+
+</body>
+</html>
+
+
